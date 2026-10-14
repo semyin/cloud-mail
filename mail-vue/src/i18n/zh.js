@@ -1,4 +1,7 @@
 const zh = {
+    emailBody: '邮件正文',
+    emailImagesBlocked: '已隐藏邮件图片，防止发件人追踪阅读。仅在信任发件人时显示。',
+    showEmailImages: '显示邮件图片',
     inbox: '收件箱',
     drafts: '草稿箱',
     sent: '已发送',

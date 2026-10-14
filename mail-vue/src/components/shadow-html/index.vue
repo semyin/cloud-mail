@@ -1,124 +1,75 @@
 <template>
-  <div class="content-box" ref="contentBox">
-    <div ref="container" class="content-html"></div>
+  <div class="content-box">
+    <div v-if="document.hasImages && !showImages" class="image-notice">
+      <span>{{ t('emailImagesBlocked') }}</span>
+      <button type="button" @click="showImages = true">{{ t('showEmailImages') }}</button>
+    </div>
+    <iframe
+        ref="frame"
+        class="email-frame"
+        :title="t('emailBody')"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        referrerpolicy="no-referrer"
+        :srcdoc="document.srcdoc"
+        :style="{ height: `${height}px` }"
+        @load="observeContent"
+    ></iframe>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { buildEmailDocument } from '@/utils/email-html.js'
 
-const props = defineProps({
-  html: {
-    type: String,
-    required: true
-  }
-})
-
-const container = ref(null)
-const contentBox = ref(null)
-let shadowRoot = null
-
-function updateContent() {
-  if (!shadowRoot) return;
-
-  // 1. 提取 <body> 的 style 属性（如果存在）
-  const bodyStyleRegex = /<body[^>]*style="([^"]*)"[^>]*>/i;
-  const bodyStyleMatch = props.html.match(bodyStyleRegex);
-  const bodyStyle = bodyStyleMatch ? bodyStyleMatch[1] : '';
-
-  // 2. 移除 <body> 标签（保留内容）
-  const cleanedHtml = props.html.replace(/<\/?body[^>]*>/gi, '');
-
-  // 3. 将 body 的 style 应用到 .shadow-content
-  shadowRoot.innerHTML = `
-    <style>
-      :host {
-        all: initial;
-        width: 100%;
-        height: 100%;
-        font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-                    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-        color: #13181D;
-        word-break: break-word;
-      }
-
-      h1, h2, h3, h4 {
-          font-size: 18px;
-          font-weight: 700;
-      }
-
-      p {
-        margin: 0;
-      }
-
-      a {
-        text-decoration: none;
-        color: #0E70DF;
-      }
-
-      .shadow-content {
-        background: #FFFFFF;
-        width: fit-content;
-        height: fit-content;
-        min-width: 100%;
-        ${bodyStyle ? bodyStyle : ''} /* 注入 body 的 style */
-      }
-
-      img:not(table img) {
-        max-width: 100%;
-        height: auto !important;
-      }
-
-    </style>
-    <div class="shadow-content">
-      ${cleanedHtml}
-    </div>
-  `;
-}
-
-function autoScale() {
-  if (!shadowRoot || !contentBox.value) return
-
-  const parent = contentBox.value
-  const shadowContent = shadowRoot.querySelector('.shadow-content')
-
-  if (!shadowContent) return
-
-  const parentWidth = parent.offsetWidth
-  const childWidth = shadowContent.scrollWidth
-
-  if (childWidth === 0) return
-
-  const scale = parentWidth / childWidth
-
-  const hostElement = shadowRoot.host
-  hostElement.style.zoom = scale
-}
-
-onMounted(() => {
-  shadowRoot = container.value.attachShadow({ mode: 'open' })
-  updateContent()
-  autoScale()
-})
+const props = defineProps({ html: { type: String, required: true } })
+const { t } = useI18n()
+const frame = ref(null)
+const height = ref(120)
+const showImages = ref(false)
+const document = computed(() => buildEmailDocument(props.html, { images: showImages.value }))
+let observer
 
 watch(() => props.html, () => {
-  updateContent()
-  autoScale()
-})
+  showImages.value = false
+  height.value = 120
+}, { flush: 'sync' })
+
+function observeContent() {
+  observer?.disconnect()
+  const body = frame.value?.contentDocument?.body
+  if (!body) return
+  const resize = () => {
+    height.value = Math.max(80, Math.ceil(body.getBoundingClientRect().height) + 24)
+  }
+  resize()
+  observer = new ResizeObserver(resize)
+  observer.observe(body)
+}
+
+onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <style scoped>
-.content-box {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  font-family: Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+.content-box { width: 100%; }
+.email-frame { display: block; width: 100%; border: 0; background: #fff; }
+.image-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
 }
-
-.content-html {
-  width: 100%;
-  height: 100%;
+.image-notice button {
+  border: 0;
+  background: transparent;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  font: inherit;
 }
 </style>

@@ -2,6 +2,22 @@ name = "cloud-mail"
 main = "src/index.js"
 compatibility_date = "2025-06-04"
 keep_vars = true
+workers_dev = false
+preview_urls = false
+
+[[routes]]
+pattern = "mail.revia.top"
+custom_domain = true
+
+# Keep the production bindings when the connected Cloudflare build publishes.
+[[d1_databases]]
+binding = "db"
+database_name = "mail"
+database_id = "101021e3-3296-41d8-908e-45745614cdb3"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "81f9763ff4754bc7b42640146d9e45cb"
 
 [observability]
 enabled = true

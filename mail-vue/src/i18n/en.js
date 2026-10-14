@@ -1,4 +1,7 @@
 const en = {
+    emailBody: 'Email body',
+    emailImagesBlocked: 'Email images are hidden to prevent tracking. Show them only if you trust the sender.',
+    showEmailImages: 'Show email images',
     inbox: 'Inbox',
     drafts: 'Drafts',
     sent: 'Sent',

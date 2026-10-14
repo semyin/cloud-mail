@@ -11,6 +11,7 @@ import loading from "@/components/loading/index.vue";
 import {useI18n} from 'vue-i18n'
 import {useUiStore} from '@/store/ui.js'
 import {useSettingStore} from '@/store/setting.js'
+import { emailHtmlForEditor } from '@/utils/email-html.js'
 
 defineExpose({
   clearEditor,
@@ -48,8 +49,9 @@ onBeforeUnmount(() => {
 });
 
 watch(() => props.defValue, (newValue) => {
-  if (editor.value && editor.value.getContent() !== newValue) {
-    editor.value.setContent(newValue);
+  const safeValue = emailHtmlForEditor(newValue);
+  if (editor.value && editor.value.getContent() !== safeValue) {
+    editor.value.setContent(safeValue);
   }
 });
 
@@ -89,6 +91,7 @@ function initEditor() {
   window.tinymce.init({
     selector: `#${props.editorId}`,
     statusbar: false,
+    xss_sanitization: true,
     height: "100%",
     auto_focus: true,
     //relative_urls: false,  //阻止 img标签域名和网站域名相同 自动把链接转换相对路径
@@ -113,7 +116,7 @@ function initEditor() {
     setup: (ed) => {
       editor.value = ed;
       ed.on('init', () => {
-        ed.setContent(props.defValue);
+        ed.setContent(emailHtmlForEditor(props.defValue));
         isInitialized.value = true;
       });
       ed.on('input change', () => {

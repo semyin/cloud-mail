@@ -114,6 +114,7 @@ import dayjs from "dayjs";
 import {useI18n} from "vue-i18n";
 import router from "@/router/index.js";
 import {ElMessageBox} from "element-plus";
+import { emailHtmlForQuote, escapeEmailText } from '@/utils/email-html.js';
 
 defineExpose({
   open,
@@ -445,7 +446,7 @@ function openForward(email) {
 
   setTimeout(() => {
     defValue.value = `
-      ${formatImage(email.content) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
+      ${quotedContent(email)}
     `
     open()
 
@@ -481,11 +482,11 @@ function openReply(email) {
     <div></div>
     <div>
     <br>
-        ${formatDetailDate(email.createTime)} ${email.name} &lt${email.sendEmail}&gt ${t('wrote')}:
+        ${escapeEmailText(formatDetailDate(email.createTime))} ${escapeEmailText(email.name)} &lt;${escapeEmailText(email.sendEmail)}&gt; ${escapeEmailText(t('wrote'))}:
     </div>
     <blockquote class="mceNonEditable" style="margin: 0 0 0 0.8ex;border-left: 1px solid rgb(204,204,204);padding-left: 1ex;">
-      <articl>
-          ${formatImage(email.content) || `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${email.text}</pre>`}
+      <article>
+          ${quotedContent(email)}
       </article>
     </blockquote>`
     open()
@@ -504,6 +505,12 @@ function formatImage(content) {
   content = content || '';
   const domain = settingStore.settings.r2Domain;
   return content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
+}
+
+function quotedContent(email) {
+  return email.content
+      ? emailHtmlForQuote(formatImage(email.content))
+      : `<pre style="font-family: inherit;word-break: break-word;white-space: pre-wrap;margin: 0">${escapeEmailText(email.text)}</pre>`;
 }
 
 function open() {
