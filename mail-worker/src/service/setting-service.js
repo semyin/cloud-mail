@@ -16,8 +16,9 @@ const settingService = {
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
 		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
-		c.set('setting', settingRow);
+		c.set?.('setting', settingRow);
 		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+		return settingRow;
 	},
 
 	async query(c) {
@@ -26,10 +27,15 @@ const settingService = {
 			return c.get('setting')
 		}
 
-		const setting = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+		let setting = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
 
 		if (!setting) {
 			throw new BizError('数据库未初始化 Database not initialized.');
+		}
+
+		// Refresh the pre-upgrade cache after the additive database migration.
+		if (setting.webhookStatus === undefined) {
+			setting = await this.refresh(c);
 		}
 
 		let domainList = c.env.domain;
